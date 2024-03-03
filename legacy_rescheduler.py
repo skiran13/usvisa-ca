@@ -3,15 +3,22 @@ from time import sleep
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.select import Select
 
-from settings import TEST_MODE
+from settings import TEST_MODE, FACILITY_ID
 
 
 # This is frankly very, very bad and should be rewritten with requests
 # when I get a test account
 def legacy_reschedule(driver):
+    Select(
+            WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.ID, "appointments_consulate_appointment_facility_id"))
+                )
+        ).select_by_value(str(FACILITY_ID))
+
     date_selection_box = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located(
+        EC.element_to_be_clickable(
             (
                 By.XPATH,
                 "/html/body/div[4]/main/div[4]/div/div/form/fieldset/ol/fieldset/div/div[2]/div[3]/label[1]",
@@ -43,7 +50,7 @@ def legacy_reschedule(driver):
             cur = cur_month_ava()
             ava_in += 1
         return ava_in
-
+    # sleep(1)
     avalible_in_months = nearest_ava()
 
     # Reschedule if the avalible_in_months is less than or equal to wait month
@@ -67,13 +74,15 @@ def legacy_reschedule(driver):
     appointment_time_options[len(appointment_time_options) - 1].click()
 
     # Click "Reschedule"
-    driver.find_element(
-        By.XPATH,
-        "/html/body/div[4]/main/div[4]/div/div/form/div[2]/fieldset/ol/li/input",
+    WebDriverWait(driver,5).until(
+        EC.element_to_be_clickable((
+            By.XPATH,
+            "/html/body/div[4]/main/div[4]/div/div/form/div[2]/fieldset/ol/li/input",
+        ))
     ).click()
     try:
         confirm = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "/html/body/div[6]/div/div/a[2]"))
+            EC.element_to_be_clickable((By.XPATH, "/html/body/div[6]/div/div/a[2]"))
         )
     finally:
         driver.implicitly_wait(0.1)

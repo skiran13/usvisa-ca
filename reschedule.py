@@ -3,6 +3,7 @@ from datetime import datetime
 from time import sleep
 
 import requests
+import winsound
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -10,10 +11,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
+from typing import Optional
 from legacy_rescheduler import legacy_reschedule
 from request_tracker import RequestTracker
 from settings import *
+import traceback
+from settings import FACILITY_ID, BOT_ID, CHAT_ID
 
 
 def get_chrome_driver() -> WebDriver:
@@ -68,7 +71,7 @@ def get_appointment_page(driver: WebDriver) -> None:
 
 def get_available_dates(
     driver: WebDriver, request_tracker: RequestTracker
-) -> list | None:
+) -> Optional[list]:
     request_tracker.log_retry()
     request_tracker.retry()
     current_url = driver.current_url
@@ -112,12 +115,20 @@ def reschedule(driver: WebDriver) -> bool:
             print(
                 f"{datetime.now().strftime('%H:%M:%S')} FOUND SLOT ON {earliest_available_date}!!!"
             )
+            requests.post(f'https://api.telegram.org/bot{BOT_ID}/sendMessage',
+                            {   "chat_id": CHAT_ID, 
+                                "text": f"FOUND SLOT ON {earliest_available_date} at {FACILITY_ID}!!!"
+                            })
             try:
                 legacy_reschedule(driver)
                 print("SUCCESSFULLY RESCHEDULED!!!")
                 return True
             except Exception as e:
                 print("Rescheduling failed: ", e)
+                print(traceback.format_exc())
+                for i in range(10):
+                    winsound.Beep(2500, 1500)
+                    winsound.Beep(2000, 1500)
                 continue
         else:
             print(
@@ -140,6 +151,7 @@ def reschedule_with_new_session() -> bool:
             session_failures += 1
             sleep(FAIL_RETRY_DELAY)
             continue
+    sleep(5)
     rescheduled = reschedule(driver)
     if rescheduled:
         return True

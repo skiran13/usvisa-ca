@@ -13,18 +13,25 @@ SHOW_GUI = True
 # For testing, also set a date really far away so the app actually tries to reschedule
 TEST_MODE = True
 
+#Telegram bot
+BOT_ID = ""
+CHAT_ID = ""
+
+# For different facility
+FACILITY_ID = 92
+
 # Don't change the following unless you know what you are doing
 DETACH = True
-NEW_SESSION_AFTER_FAILURES = 5
+NEW_SESSION_AFTER_FAILURES = 10
 NEW_SESSION_DELAY = 60
 TIMEOUT = 10
 FAIL_RETRY_DELAY = 30
-DATE_REQUEST_DELAY = 30
-DATE_REQUEST_MAX_RETRY = 60
+DATE_REQUEST_DELAY = 300
+DATE_REQUEST_MAX_RETRY = 6
 DATE_REQUEST_MAX_TIME = 30 * 60
 LOGIN_URL = "https://ais.usvisa-info.com/en-ca/niv/users/sign_in"
 APPOINTMENT_PAGE_URL = "https://ais.usvisa-info.com/en-ca/niv/schedule/{id}/appointment"
-AVAILABLE_DATE_REQUEST_SUFFIX = "/days/94.json?appointments[expedite]=false"
+AVAILABLE_DATE_REQUEST_SUFFIX = f"/days/{FACILITY_ID}.json?appointments[expedite]=false"
 REQUEST_HEADERS = {
     "X-Requested-With": "XMLHttpRequest",
 }
