@@ -4,7 +4,7 @@ from datetime import datetime
 from time import sleep
 
 import requests
-import winsound
+import chime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -116,20 +116,20 @@ def reschedule(driver: WebDriver) -> bool:
             print(
                 f"{datetime.now().strftime('%H:%M:%S')} FOUND SLOT ON {earliest_available_date}!!!"
             )
-            requests.post(f'https://api.telegram.org/bot{BOT_ID}/sendMessage',
+            try:
+                requests.post(f'https://api.telegram.org/bot{BOT_ID}/sendMessage',
                             {   "chat_id": CHAT_ID, 
                                 "text": f"FOUND SLOT ON {earliest_available_date} at {FACILITY_ID}!!!"
                             })
-            try:
                 legacy_reschedule(driver)
                 print("SUCCESSFULLY RESCHEDULED!!!")
                 return True
             except Exception as e:
                 print("Rescheduling failed: ", e)
                 print(traceback.format_exc())
+                chime.theme('sonic')
                 for i in range(10):
-                    winsound.Beep(2500, 1500)
-                    winsound.Beep(2000, 1500)
+                    chime.info(True)
                 continue
         else:
             print(
