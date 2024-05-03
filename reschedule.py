@@ -99,6 +99,36 @@ def get_available_dates(
     dates = [datetime.strptime(item["date"], "%Y-%m-%d").date() for item in dates_json]
     return dates
 
+def try_form_submission(driver, earliest_available_date):
+    with requests.Session() as s:
+        request_header_cookie = "".join(
+            [f"{cookie['name']}={cookie['value']};" for cookie in driver.get_cookies()]
+        )
+        request_headers = REQUEST_HEADERS.copy()
+        request_headers["Cookie"] = request_header_cookie
+        request_headers["User-Agent"] = driver.execute_script("return navigator.userAgent")
+        AVAILABLE_TIME_REQUEST_SUFFIX = f"/times/{FACILITY_ID}.json?date={earliest_available_date}&appointments[expedite]=false"
+        current_url = driver.current_url
+        request_url = current_url + AVAILABLE_TIME_REQUEST_SUFFIX
+        response = s.get(request_url, headers=request_headers)
+        if response.status_code != 200:
+            print(f"Form submission failed with status code {response.status_code}")
+            return False
+        try:
+            times = response.json()
+            print(times)
+            earliest_time = times.get('available_times')[0]
+            payload = {'appointments[consulate_appointment][facility_id]':FACILITY_ID, 'appointments[consulate_appointment][date]':earliest_available_date, 'appointments[consulate_appointment][time]': earliest_time}
+            resp = s.post(current_url, data=payload)
+            print(resp)
+            if resp.status_code != 200:
+                return False
+            else:
+                return True
+        except:
+            print("Failed")
+            print(traceback.format_exc())
+            return False
 
 def reschedule(driver: WebDriver) -> bool:
     date_request_tracker = RequestTracker(DATE_REQUEST_MAX_RETRY, DATE_REQUEST_MAX_TIME)
@@ -118,18 +148,24 @@ def reschedule(driver: WebDriver) -> bool:
             )
             try:
                 requests.post(f'https://api.telegram.org/bot{BOT_ID}/sendMessage',
-                            {   "chat_id": CHAT_ID, 
-                                "text": f"FOUND SLOT ON {earliest_available_date} at {FACILITY_ID}!!!"
-                            })
+                                {   "chat_id": CHAT_ID, 
+                                    "text": f"FOUND SLOT ON {earliest_available_date} at {FACILITY_ID}!!!"
+                                })
+            except:
+                print('Message not sent')
+                print(traceback.format_exc())
+            try:
                 legacy_reschedule(driver)
                 print("SUCCESSFULLY RESCHEDULED!!!")
                 return True
             except Exception as e:
                 print("Rescheduling failed: ", e)
                 print(traceback.format_exc())
-                chime.theme('sonic')
-                for i in range(10):
-                    chime.info(True)
+                # chime.theme('sonic')
+                # for i in range(10):
+                #     chime.info(True)
+                if try_form_submission(driver, earliest_available_date):
+                    return True
                 continue
         else:
             print(
